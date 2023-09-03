@@ -41,7 +41,8 @@ using (var activity = myActivitySource.StartActivity("RootActivity"))
         using (var fast = myActivitySource.StartActivity("SomethingFast"))
         {
             Activity.Current?.AddEvent(new ActivityEvent("Starting Fast Http requests"));
-            await client.GetStringAsync("https://httpstat.us/301");
+            var response = await client.GetStringAsync("http://www.google.com");
+            activity?.SetTag("Google Response", response[..40]);
             Activity.Current?.AddEvent(new ActivityEvent("Done"));
         }
     }

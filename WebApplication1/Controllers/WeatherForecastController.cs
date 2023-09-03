@@ -42,7 +42,8 @@ public class WeatherForecastController : ControllerBase
             using (var fast = Activity.Current?.Source.StartActivity("SomethingFast"))
             {
                 Activity.Current?.AddEvent(new ActivityEvent("Starting Fast Http requests"));
-                await client.GetStringAsync("https://httpstat.us/301");
+                var response = await client.GetStringAsync("http://www.google.com");
+                Activity.Current?.SetTag("Google Response", response[..40]);
                 Activity.Current?.AddEvent(new ActivityEvent("Done"));
             }
         }
