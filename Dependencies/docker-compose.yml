@@ -1,0 +1,32 @@
+version: '3.7'
+
+volumes:
+    grafana: ~
+    
+services:
+    tempo:
+        image: grafana/tempo:latest
+        hostname: tempo
+        user: "1000"
+        restart: "unless-stopped"
+        command: [ "-config.file=/etc/tempo.yaml" ]
+        volumes:
+            - ./config/tempo.yaml:/etc/tempo.yaml
+            - ./tempo-data:/tmp/tempo
+        ports:
+            - "4317:4317"  # otlp grpc
+            #- "3200:3200"  # native port for Grafana data source
+    grafana:
+        image: grafana/grafana-oss:latest-ubuntu
+        ports: 
+            - "3000:3000" #UI
+        volumes:
+            - grafana:/var/lib/grafana
+            - ./config/grafana/provisioning:/etc/grafana/provisioning
+        environment:
+            - GF_AUTH_ANONYMOUS_ENABLED=true
+            - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+            - GF_AUTH_DISABLE_LOGIN_FORM=true
+        depends_on:
+            - tempo
+
