@@ -8,7 +8,6 @@ using OpenTelemetry.Trace;
 var myActivitySource = new ActivitySource("ConsoleApp1Source");
 
 using var tracerProvider = Sdk.CreateTracerProviderBuilder()
-    // Add a line below to see correct service name in the Jaeger/Grafana UI 
     .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName: "ConsoleApp1Service", serviceVersion: "1.0.0"))
     .AddSource(myActivitySource.Name)
     .AddConsoleExporter() // Add OpenTelemetry.Exporter.Console package to use that
@@ -18,25 +17,41 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
 
 using (var activity = myActivitySource.StartActivity("RootActivity"))
 {
-    activity?.SetTag("foo", 1);
-    activity?.SetTag("bar", "Hello, World!");
-    activity?.SetTag("baz", new[] { 1, 2, 3 });
-    activity?.SetStatus(ActivityStatusCode.Ok);
+    // put some custom data/metrics to activity tags
+    activity?
+        .SetTag("foo", 1)
+        .SetTag("bar", "Hello, World!")
+        .SetTag("baz", new[] { 1, 2, 3 });
 
+    // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/baggage/api.md
+    // The added Baggage is available in all places
+    Baggage.SetBaggage("ProjectName", "OpenTelemetry using example");
+
+    Activity.Current?.AddEvent(new ActivityEvent("Starting Http requests"));
     using (var client = new HttpClient())
     {
         using (var slow = myActivitySource.StartActivity("SomethingSlow"))
         {
+            Activity.Current?.AddEvent(new ActivityEvent("Starting slow Http requests"));
             await client.GetStringAsync("https://httpstat.us/200?sleep=1000");
             await client.GetStringAsync("https://httpstat.us/200?sleep=500");
+            Activity.Current?.AddEvent(new ActivityEvent("Done"));
         }
-
+        Baggage.SetBaggage("CurrentTime", DateTime.Now.ToLongTimeString());
         using (var fast = myActivitySource.StartActivity("SomethingFast"))
         {
+            Activity.Current?.AddEvent(new ActivityEvent("Starting Fast Http requests"));
             await client.GetStringAsync("https://httpstat.us/301");
+            Activity.Current?.AddEvent(new ActivityEvent("Done"));
         }
     }
+    Activity.Current?.SetStatus(ActivityStatusCode.Ok);
+    var myTags = new Dictionary<string, object?> { {"tag1", "my value" }};
+    Activity.Current?.AddEvent(new ActivityEvent("Done", tags: new ActivityTagsCollection(myTags)));
 }
+
+foreach (var item in Baggage.GetBaggage()) 
+    Console.WriteLine($"{item.Key} = {item.Value}");
 
 Console.WriteLine("Press any key...");
 Console.ReadLine();
