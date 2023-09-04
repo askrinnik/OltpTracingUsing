@@ -10,7 +10,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-const string serviceName = "MyAppService";
+const string serviceName = "WeatherForecast";
 
 var openTelemetryBuilder = builder.Services.AddOpenTelemetry() // add the OpenTelemetry.Extensions.Hosting nuget package
     .ConfigureResource(resource => resource.AddService(serviceName));

@@ -24,28 +24,11 @@ public class WeatherForecastController : ControllerBase
     public async Task<IEnumerable<WeatherForecast>> Get()
     {
         Activity.Current?.AddEvent(new ActivityEvent("Starting Get"));
-        // put some custom data/metrics to activity tags
-        Activity.Current?
-            .SetTag("foo", 1)
-            .SetTag("bar", "Hello, World!")
-            .SetTag("baz", new[] { 1, 2, 3 });
 
         using (var client = new HttpClient())
         {
-            using (var slow = Activity.Current?.Source.StartActivity("SomethingSlow"))
-            {
-                Activity.Current?.AddEvent(new ActivityEvent("Starting slow Http requests"));
-                await client.GetStringAsync("https://httpstat.us/200?sleep=1000");
-                await client.GetStringAsync("https://httpstat.us/200?sleep=500");
-                Activity.Current?.AddEvent(new ActivityEvent("Done"));
-            }
-            using (var fast = Activity.Current?.Source.StartActivity("SomethingFast"))
-            {
-                Activity.Current?.AddEvent(new ActivityEvent("Starting Fast Http requests"));
-                var response = await client.GetStringAsync("http://www.google.com");
-                Activity.Current?.SetTag("Google Response", response[..40]);
-                Activity.Current?.AddEvent(new ActivityEvent("Done"));
-            }
+            await RunSlowWork(client);
+            await RunFastWork(client);
         }
 
         var weatherForecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
@@ -62,5 +45,20 @@ public class WeatherForecastController : ControllerBase
         Activity.Current?.AddEvent(new ActivityEvent("Forecast was generated", tags: new ActivityTagsCollection(myTags)));
 
         return weatherForecasts;
+    }
+
+    private static async Task RunFastWork(HttpClient client)
+    {
+        using var fast = Activity.Current?.Source.StartActivity("SomethingFast");
+        var response = await client.GetStringAsync("http://www.google.com");
+        Activity.Current?.SetTag("Google Response", response[..100]);
+    }
+
+    private static async Task RunSlowWork(HttpClient client)
+    {
+        using var slow = Activity.Current?.Source.StartActivity("SomethingSlow");
+        Activity.Current?.AddEvent(new ActivityEvent("Starting slow Http requests"));
+        await client.GetStringAsync("https://httpstat.us/200?sleep=1000");
+        Activity.Current?.AddEvent(new ActivityEvent("Done"));
     }
 }
