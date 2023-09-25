@@ -7,8 +7,10 @@ using OpenTelemetry.Trace;
 
 var myActivitySource = new ActivitySource("ConsoleApp1");
 
+var resourceBuilder = ResourceBuilder.CreateDefault().AddService(serviceName: "ConsoleApp1", serviceVersion: "1.0.0");
+
 using var tracerProvider = Sdk.CreateTracerProviderBuilder()
-    .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName: "ConsoleApp1", serviceVersion: "1.0.0"))
+    .SetResourceBuilder(resourceBuilder)
     .AddSource(myActivitySource.Name)
     .AddConsoleExporter() // Add OpenTelemetry.Exporter.Console package to use that
     .AddOtlpExporter() // 4317  Add OpenTelemetry.Exporter.OpenTelemetryProtocol package to use that
